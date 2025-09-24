@@ -245,58 +245,6 @@ func TestInMemoryStore_Delete(t *testing.T) {
 	})
 }
 
-func TestInMemoryStore_AcquireDataFlowsForRecovery(t *testing.T) {
-	store := NewInMemoryStore()
-	ctx := context.Background()
-
-	t.Run("empty store", func(t *testing.T) {
-		iterator := store.AcquireDataFlowsForRecovery(ctx)
-		defer iterator.Close()
-
-		assert.NotNil(t, iterator)
-		assert.False(t, iterator.Next())
-		assert.NoError(t, iterator.Error())
-	})
-
-	t.Run("store with flows", func(t *testing.T) {
-		// Add multiple flows
-		flows := []*dsdk.DataFlow{
-			{ID: "flow-1", RuntimeID: "runtime-1", State: dsdk.Started},
-			{ID: "flow-2", RuntimeID: "runtime-2", State: dsdk.Suspended},
-			{ID: "flow-3", RuntimeID: "runtime-3", State: dsdk.Completed},
-		}
-
-		for _, flow := range flows {
-			err := store.Create(ctx, flow)
-			require.NoError(t, err)
-		}
-
-		iterator := store.AcquireDataFlowsForRecovery(ctx)
-		defer iterator.Close()
-
-		// Collect all flows from iterator
-		var recoveredFlows []*dsdk.DataFlow
-		for iterator.Next() {
-			recoveredFlows = append(recoveredFlows, iterator.Get())
-		}
-
-		assert.NoError(t, iterator.Error())
-		assert.Equal(t, 3, len(recoveredFlows))
-
-		// Verify all flows are present (order may vary due to map iteration)
-		flowIds := make(map[string]bool)
-		for _, flow := range recoveredFlows {
-			flowIds[flow.ID] = true
-			// Verify it's a copy, not the original
-			assert.NotSame(t, store.flows[flow.ID], flow)
-		}
-
-		assert.True(t, flowIds["flow-1"])
-		assert.True(t, flowIds["flow-2"])
-		assert.True(t, flowIds["flow-3"])
-	})
-}
-
 func TestMemoryIterator(t *testing.T) {
 	t.Run("iterate through items", func(t *testing.T) {
 		items := []string{"item1", "item2", "item3"}
@@ -430,12 +378,6 @@ func TestInMemoryStore_ThreadSafety(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		go func() {
 			defer iterWg.Done()
-			iterator := store.AcquireDataFlowsForRecovery(ctx)
-			defer iterator.Close()
-
-			for iterator.Next() {
-				iterator.Get()
-			}
 		}()
 	}
 

@@ -56,6 +56,10 @@ func (dsdk *DataPlaneSDK) Prepare(ctx context.Context, message DataFlowPrepareMe
 			if err != nil {
 				return fmt.Errorf("processing data flow: %w", err)
 			}
+			// todo: not sure about this, added because Prepare() has it too
+			if err := dsdk.Store.Save(ctx, flow); err != nil {
+				return fmt.Errorf("creating data flow: %w", err)
+			}
 			return nil
 		case flow != nil:
 			return fmt.Errorf("data flow %s is not in PREPARING or PREPARED state", flow.ID)
@@ -99,6 +103,7 @@ func (dsdk *DataPlaneSDK) Prepare(ctx context.Context, message DataFlowPrepareMe
 		return nil
 	})
 
+	// fixme: shouldn't we always return a clean nil/error or response/nil tuple?
 	return response, err
 }
 
@@ -129,7 +134,7 @@ func (dsdk *DataPlaneSDK) Start(ctx context.Context, message DataFlowStartMessag
 				return fmt.Errorf("onStart returned an invalid state: %w", err)
 			}
 
-			if err := dsdk.Store.Create(ctx, flow); err != nil {
+			if err := dsdk.Store.Save(ctx, flow); err != nil {
 				return fmt.Errorf("creating data flow: %w", err)
 			}
 			return nil
@@ -252,32 +257,17 @@ func (dsdk *DataPlaneSDK) Suspend(ctx context.Context, processID string) error {
 
 }
 
-func (dsdk *DataPlaneSDK) Recover(ctx context.Context) error {
-	return dsdk.execute(ctx, func(ctx2 context.Context) error {
-		iter := dsdk.Store.AcquireDataFlowsForRecovery(ctx)
-		if iter == nil {
-			return errors.New("failed to create iterator")
+func (dsdk *DataPlaneSDK) Status(ctx context.Context, id string) (*DataFlow, error) {
+	var flow *DataFlow
+	err := dsdk.execute(ctx, func(ctx context.Context) error {
+		found, err := dsdk.Store.FindById(ctx, id)
+		if err != nil {
+			return err
 		}
-		//nolint:errcheck
-		defer iter.Close()
-
-		var errs []error
-		for iter.Next() {
-			flow := iter.Get()
-			if flow == nil {
-				continue // skip nil flows
-			}
-			if err := dsdk.onRecover(ctx, flow); err != nil {
-				errs = append(errs, fmt.Errorf("data flow %s: %w", flow.ID, err))
-			}
-		}
-
-		if err := iter.Error(); err != nil {
-			return fmt.Errorf("recovering data flows: %w", err)
-		}
-
-		return errors.Join(errs...)
+		flow = found
+		return nil
 	})
+	return flow, err
 }
 
 func (dsdk *DataPlaneSDK) startState(response *DataFlowResponseMessage, flow *DataFlow) error {

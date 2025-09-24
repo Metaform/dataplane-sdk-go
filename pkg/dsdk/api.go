@@ -16,10 +16,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 const contentType = "Content-Type"
@@ -100,6 +101,28 @@ func (d *DataPlaneApi) Suspend(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (d *DataPlaneApi) Status(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Invalid request method", http.StatusBadRequest)
+		return
+	}
+	processID, err := ParseIDFromURL(r.URL)
+	if err != nil {
+		return
+	}
+	dataFlow, err := d.sdk.Status(r.Context(), processID)
+	if err != nil {
+		d.processError(w)
+		return
+	}
+	w.Header().Set(contentType, jsonContentType)
+	response := DataFlowStatusResponseMessage{
+		State:      dataFlow.State,
+		DataFlowID: dataFlow.ID,
+	}
+	d.writeResponse(w, 200, response)
+}
+
 func (d *DataPlaneApi) transition(w http.ResponseWriter, r *http.Request, transition func(processID string) error) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusBadRequest)
@@ -142,7 +165,7 @@ func (d *DataPlaneApi) processError(w http.ResponseWriter) {
 	d.writeResponse(w, http.StatusInternalServerError, &DataFlowResponseMessage{Error: message})
 }
 
-func (d *DataPlaneApi) writeResponse(w http.ResponseWriter, code int, response *DataFlowResponseMessage) {
+func (d *DataPlaneApi) writeResponse(w http.ResponseWriter, code int, response any) {
 	w.Header().Set(contentType, jsonContentType)
 	w.WriteHeader(code)
 	if err := json.NewEncoder(w).Encode(response); err != nil {

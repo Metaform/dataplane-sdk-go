@@ -433,7 +433,7 @@ func TestDataFlow_transitionToSuspended(t *testing.T) {
 		"invalid transition from Uninitialized": {
 			initialState: Uninitialized,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from UNITIALIZED to SUSPENDED",
+			expectedErr:  "invalid transition: cannot transition from UNINITIALIZED to SUSPENDED",
 		},
 		"invalid transition from Preparing": {
 			initialState: Preparing,
@@ -536,7 +536,7 @@ func TestDataFlow_transitionToCompleted(t *testing.T) {
 		"invalid transition from Uninitialized": {
 			initialState: Uninitialized,
 			expectErr:    true,
-			expectedErr:  "invalid transition: cannot transition from UNITIALIZED to COMPLETED",
+			expectedErr:  "invalid transition: cannot transition from UNINITIALIZED to COMPLETED",
 		},
 		"invalid transition from Preparing": {
 			initialState: Preparing,

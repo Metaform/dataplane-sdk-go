@@ -108,25 +108,6 @@ func (s *InMemoryStore) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-// AcquireDataFlowsForRecovery returns an iterator for DataFlows that need recovery
-func (s *InMemoryStore) AcquireDataFlowsForRecovery(ctx context.Context) dsdk.Iterator[*dsdk.DataFlow] {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	var recoveryFlows []*dsdk.DataFlow
-	for _, flow := range s.flows {
-		// Create a copy and add to recovery list
-		// Typically you'd filter by state here (e.g., flows in Started or Suspended state)
-		flowCopy := *flow
-		recoveryFlows = append(recoveryFlows, &flowCopy)
-	}
-
-	return &memoryIterator[*dsdk.DataFlow]{
-		items: recoveryFlows,
-		index: -1,
-	}
-}
-
 // memoryIterator is a simple iterator implementation for slice data
 type memoryIterator[T any] struct {
 	items []T

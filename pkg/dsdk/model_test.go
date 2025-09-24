@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_dataFlowStartSerialize(t *testing.T) {
@@ -25,7 +26,7 @@ func Test_dataFlowStartSerialize(t *testing.T) {
 			},
 			DestinationDataAddress: *build,
 		},
-		SourceDataAddress: *build,
+		SourceDataAddress: build,
 	}
 
 	jsonData, err := json.Marshal(original)
@@ -90,7 +91,7 @@ func TestDataFlowBuilder_Build(t *testing.T) {
 						DestinationType: "test-dest",
 						FlowType:        Pull,
 					}).
-					RuntimeId("runtime-123")
+					RuntimeID("runtime-123")
 			},
 			wantErr: false,
 		},
@@ -226,5 +227,5 @@ func createValidBuilder(validURL *url.URL) *DataFlowBuilder {
 			DestinationType: "test-dest",
 			FlowType:        Pull,
 		}).
-		RuntimeId("runtime-123")
+		RuntimeID("runtime-123")
 }

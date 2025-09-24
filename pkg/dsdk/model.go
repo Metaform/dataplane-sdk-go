@@ -84,7 +84,7 @@ type DataFlowBaseMessage struct {
 	MessageID              string       `json:"messageID"` // NEW
 	ParticipantID          string       `json:"participantID"`
 	CounterPartyID         string       `json:"counterPartyID"`
-	DataspaceContext       string       `json:"dataspceContext"`
+	DataspaceContext       string       `json:"dataspaceContext"`
 	ProcessID              string       `json:"processID"`
 	AgreementID            string       `json:"agreementID"`
 	DatasetID              string       `json:"datasetID"`
@@ -106,10 +106,15 @@ type DataFlowTransitionMessage struct {
 	Reason string `json:"reason"`
 }
 type DataFlowResponseMessage struct {
-	DataplaneId string        `json:"dataplaneId"`
+	DataplaneID string        `json:"dataplaneID"`
 	DataAddress *DataAddress  `json:"dataAddress,omitempty"`
 	State       DataFlowState `json:"state"`
 	Error       string        `json:"error"`
+}
+
+type DataFlowStatusResponseMessage struct {
+	State      DataFlowState `json:"state"`
+	DataFlowID string        `json:"dataFlowID"`
 }
 
 type DataFlowState int
@@ -117,7 +122,7 @@ type DataFlowState int
 func (s DataFlowState) String() string {
 	switch s {
 	case Uninitialized:
-		return "UNITIALIZED"
+		return "UNINITIALIZED"
 	case Preparing:
 		return "PREPARING"
 	case Prepared:
@@ -250,7 +255,7 @@ func (df *DataFlow) TransitionToCompleted() error {
 
 func (df *DataFlow) TransitionToTerminated() error {
 	if df.State == Terminated {
-		return nil
+		return nil // todo: does returning an error make sense here?
 	}
 	// Any state can transition to terminated
 	df.State = Terminated
@@ -342,7 +347,7 @@ func (b *DataFlowBuilder) ErrorDetail(error string) *DataFlowBuilder {
 	return b
 }
 
-func (b *DataFlowBuilder) RuntimeId(id string) *DataFlowBuilder {
+func (b *DataFlowBuilder) RuntimeID(id string) *DataFlowBuilder {
 	b.dataFlow.RuntimeID = id
 	return b
 }

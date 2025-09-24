@@ -20,7 +20,6 @@ type DataplaneStore interface {
 	Create(context.Context, *DataFlow) error
 	Save(context.Context, *DataFlow) error
 	Delete(ctx context.Context, id string) error
-	AcquireDataFlowsForRecovery(ctx context.Context) Iterator[*DataFlow]
 }
 
 // TransactionContext defines an extension point for executing operations within a transactional context.
