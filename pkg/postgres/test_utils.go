@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
+	_ "embed"
 	"fmt"
 	"testing"
 
@@ -42,4 +44,22 @@ func setupTestContainer(t *testing.T) (testcontainers.Container, string) {
 
 	dsn := fmt.Sprintf("postgres://test:test@%s:%s/testdb?sslmode=disable", host, port.Port())
 	return container, dsn
+}
+
+//go:embed dataflow_schema.sql
+var schema string
+
+func SetupDatabase(t *testing.T, ctx context.Context) (*sql.DB, testcontainers.Container) {
+
+	// Start a Postgres testcontainer once for all tests
+	container, dsn := setupTestContainer(t)
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Apply schema (expects the SQL file to be available in repo)
+	if _, err := db.ExecContext(ctx, schema); err != nil {
+		panic(err)
+	}
+	return db, container
 }

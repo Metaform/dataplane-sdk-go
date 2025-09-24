@@ -349,19 +349,37 @@ func (b *DataPlaneSDKBuilder) Build() (*DataPlaneSDK, error) {
 		return nil, errors.New("transaction context is required")
 	}
 	if b.sdk.onPrepare == nil {
-		return nil, errors.New("onPrepare handler is required")
+		b.sdk.onPrepare = func(context context.Context, flow *DataFlow, sdk *DataPlaneSDK, options *ProcessorOptions) (*DataFlowResponseMessage, error) {
+			return &DataFlowResponseMessage{
+				DataplaneID: "TODO_REPLACE_ME",
+				DataAddress: &flow.DestinationDataAddress,
+				State:       Prepared,
+				Error:       ""}, nil
+		}
 	}
 	if b.sdk.onStart == nil {
-		return nil, errors.New("onStart handler is required")
+		b.sdk.onStart = func(context context.Context, flow *DataFlow, sdk *DataPlaneSDK, options *ProcessorOptions) (*DataFlowResponseMessage, error) {
+			return &DataFlowResponseMessage{
+				State:       Started,
+				DataplaneID: "TODO_REPLACE_ME",
+				DataAddress: &flow.DestinationDataAddress,
+				Error:       ""}, nil
+		}
 	}
 	if b.sdk.onTerminate == nil {
-		return nil, errors.New("onTerminate handler is required")
+		b.sdk.onTerminate = func(context context.Context, flow *DataFlow) error {
+			return nil
+		}
 	}
 	if b.sdk.onSuspend == nil {
-		return nil, errors.New("onSuspend handler is required")
+		b.sdk.onSuspend = func(context context.Context, flow *DataFlow) error {
+			return nil
+		}
 	}
 	if b.sdk.onRecover == nil {
-		return nil, errors.New("onRecover handler is required")
+		b.sdk.onRecover = func(context context.Context, flow *DataFlow) error {
+			return nil
+		}
 	}
 	if b.sdk.Monitor == nil {
 		b.sdk.Monitor = defaultLogMonitor{}

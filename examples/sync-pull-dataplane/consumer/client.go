@@ -16,11 +16,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/metaform/dataplane-sdk-go/examples/common"
 	"io"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/metaform/dataplane-sdk-go/examples/common"
 )
 
 const (
@@ -72,7 +73,7 @@ func TransferDataset(datasetID string) error {
 
 	resp, err = httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to execute request: %w", err.Error())
+		return fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
 

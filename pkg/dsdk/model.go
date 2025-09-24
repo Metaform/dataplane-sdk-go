@@ -406,7 +406,7 @@ func (b *DataFlowBuilder) Build() (*DataFlow, error) {
 	}
 
 	if len(validationErrs) > 0 {
-		return nil, fmt.Errorf("validation failed: %v", validationErrs)
+		return nil, NewValidationError(validationErrs...)
 	}
 
 	return &b.dataFlow, nil

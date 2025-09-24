@@ -20,29 +20,27 @@ import (
 var (
 	testDB *sql.DB
 	store  *PostgresStore
-	ctx    context.Context
+	ctx    = context.Background()
 )
 
 func TestMain(m *testing.M) {
 	container, c := setupDb(&testing.T{})
 	ctx = c
 	store = &PostgresStore{db: testDB}
-
-	defer func() {
-		if err := container.Terminate(ctx); err != nil {
-			panic(err)
-		}
-		if err := testDB.Close(); err != nil {
-			panic(err)
-		}
-	}()
+	db, container := SetupDatabase(&testing.T{}, ctx)
+	testDB = db
+	store = NewStore(testDB)
 
 	code := m.Run()
+
+	if err := container.Terminate(ctx); err != nil {
+		panic(err)
+	}
+	if err := testDB.Close(); err != nil {
+		panic(err)
+	}
 	os.Exit(code)
 }
-
-//go:embed dataflow_schema.sql
-var schema string
 
 func setupDb(t *testing.T) (testcontainers.Container, context.Context) {
 	ctx := context.Background()

@@ -18,6 +18,10 @@ type PostgresStore struct {
 	db *sql.DB
 }
 
+func NewStore(db *sql.DB) *PostgresStore {
+	return &PostgresStore{db: db}
+}
+
 func (p PostgresStore) FindById(ctx context.Context, id string) (*dsdk.DataFlow, error) {
 	query := `SELECT * FROM data_flows WHERE id = $1`
 
