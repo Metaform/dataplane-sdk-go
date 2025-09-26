@@ -62,7 +62,8 @@ func (dsdk *DataPlaneSDK) Prepare(ctx context.Context, message DataFlowPrepareMe
 			}
 			return nil
 		case flow != nil:
-			return fmt.Errorf("data flow %s is not in PREPARING or PREPARED state", flow.ID)
+			return fmt.Errorf("%w: data flow %s is not in PREPARING or PREPARED state but in %s", ErrConflict, flow.ID, flow.State.String())
+			//return NewConflictError(fmt.Sprintf("data flow %s is not in PREPARING or PREPARED state", flow.ID))
 		}
 		flow, err = NewDataFlowBuilder().ID(processID).
 			Consumer(true).

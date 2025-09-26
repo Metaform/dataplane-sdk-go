@@ -160,15 +160,16 @@ func (d *DataPlaneApi) decodeError(w http.ResponseWriter, err error) {
 
 // processError writes an error message to the HTTP response that indicates a processing error (= HTTP 500, HTTP 400 if validation error)
 func (d *DataPlaneApi) processError(err error, w http.ResponseWriter) {
-	id := uuid.NewString()
 
 	switch {
 	case errors.Is(err, ErrValidation):
-		message := fmt.Sprintf("Validation error [%s]", err.Error())
+		message := fmt.Sprintf("Validation error: %s", err)
 		d.writeResponse(w, http.StatusBadRequest, &DataFlowResponseMessage{Error: message})
-		return
+	case errors.Is(err, ErrConflict):
+		message := fmt.Sprintf("%s", err)
+		d.writeResponse(w, http.StatusConflict, &DataFlowResponseMessage{Error: message})
 	default:
-		message := fmt.Sprintf("Error processing flow [%s]", id)
+		message := fmt.Sprintf("Error processing flow: %s", err)
 		d.sdk.Monitor.Println(message)
 		d.writeResponse(w, http.StatusInternalServerError, &DataFlowResponseMessage{Error: message})
 	}
@@ -211,27 +212,4 @@ func ParseIDFromURL(u *url.URL) (string, error) {
 	}
 
 	return "", errors.New("no valid ID found in URL path")
-}
-
-// ErrValidation Sentinel error to indicate a validation error on API ingress. Can be compared with errors.Is.
-var ErrValidation = errors.New("validation error")
-
-// ValidationError holds multiple messages.
-type ValidationError struct {
-	Messages []string
-}
-
-// Error implements the error interface.
-func (e *ValidationError) Error() string {
-	return "validation failed: " + strings.Join(e.Messages, "; ")
-}
-
-// Is allows errors.Is(err, ErrValidation) to work.
-func (e *ValidationError) Is(target error) bool {
-	return target == ErrValidation
-}
-
-// NewValidationError Helper to create new ValidationError
-func NewValidationError(msgs ...string) *ValidationError {
-	return &ValidationError{Messages: msgs}
 }

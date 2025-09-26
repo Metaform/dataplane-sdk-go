@@ -2,13 +2,6 @@ package dsdk
 
 import (
 	"context"
-	"errors"
-)
-
-var (
-	ErrNotFound     = errors.New("not found")
-	ErrInvalidInput = errors.New("invalid input")
-	ErrConflict     = errors.New("conflict")
 )
 
 //go:generate go run github.com/vektra/mockery/v2@latest --name=DataplaneStore --output=. --outpkg=dsdk --filename=mock_dataplane_store_test.go --structname=MockDataplaneStore --with-expecter --inpackage

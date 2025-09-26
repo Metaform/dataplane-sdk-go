@@ -362,6 +362,7 @@ func Test_DataPlaneSDK_Prepare_InWrongState(t *testing.T) {
 	store.AssertNotCalled(t, "Create", mock.AnythingOfType("*dsdk.DataFlow"))
 
 	_, err := dsdk.Prepare(ctx, createPrepareMessage())
+	assert.ErrorIs(t, err, ErrConflict)
 	assert.ErrorContains(t, err, "is not in PREPARING or PREPARED state")
 }
 
