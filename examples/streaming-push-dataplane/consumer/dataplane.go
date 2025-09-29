@@ -16,12 +16,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/metaform/dataplane-sdk-go/examples/common"
 	"github.com/metaform/dataplane-sdk-go/examples/natsservices"
 	"github.com/metaform/dataplane-sdk-go/pkg/dsdk"
 	"github.com/metaform/dataplane-sdk-go/pkg/memory"
-	"log"
-	"net/http"
 )
 
 // ConsumerDataPlane demonstrates how to use the Data Plane SDK. This implementation supports push event streaming.
@@ -50,10 +51,8 @@ func NewDataPlane(authService *natsservices.AuthService,
 		TransactionContext(memory.InMemoryTrxContext{}).
 		OnPrepare(providerDataPlane.prepareProcessor).
 		OnStart(providerDataPlane.startProcessor).
-		OnRecover(providerDataPlane.noopHandler).
 		OnSuspend(providerDataPlane.suspendProcessor).
 		OnTerminate(providerDataPlane.terminateProcessor).
-		OnRecover(providerDataPlane.noopHandler).
 		Build()
 	if err != nil {
 		return nil, err

@@ -15,12 +15,13 @@ package consumer
 import (
 	"context"
 	"errors"
+	"log"
+	"net/http"
+
 	"github.com/metaform/dataplane-sdk-go/examples/common"
 	"github.com/metaform/dataplane-sdk-go/examples/natsservices"
 	"github.com/metaform/dataplane-sdk-go/pkg/dsdk"
 	"github.com/metaform/dataplane-sdk-go/pkg/memory"
-	"log"
-	"net/http"
 )
 
 type ConsumerDataPlane struct {
@@ -39,7 +40,6 @@ func NewDataPlane(eventSubscriber *natsservices.EventSubscriber) (*ConsumerDataP
 		OnStart(dataplane.startProcessor).
 		OnTerminate(dataplane.terminateProcessor).
 		OnSuspend(dataplane.noopHandler).
-		OnRecover(dataplane.noopHandler).
 		Build()
 	if err != nil {
 		return nil, err

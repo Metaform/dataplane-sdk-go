@@ -2,7 +2,7 @@
 
 A Data Plane SDK for Go. This SDK provides components for creating Go-based data planes that interface with Dataspace
 Protocol Control Planes via the `Data Plane Signaling API`. The SDK includes state management, support for reliable
-qualities of service, recovery, and error handling.
+qualities of service, and error handling.
 
 ## Main Operations
 
@@ -30,12 +30,6 @@ qualities of service, recovery, and error handling.
 - Function: `Suspend(ctx context.Context, processID string) error`
 - Requires: Process ID
 
-### 5. Recover
-
-- Purpose: Handles recovery of data flows
-- Function: `Recover(ctx context.Context) error`
-- Processes multiple flows that need recovery
-
 ## Key Features
 
 ### State Management
@@ -61,7 +55,6 @@ qualities of service, recovery, and error handling.
 - : Custom start logic `OnStart`
 - : Custom termination logic `OnTerminate`
 - : Custom suspension logic `OnSuspend`
-- : Custom recovery logic `OnRecover`
 
 ## Usage Example
 

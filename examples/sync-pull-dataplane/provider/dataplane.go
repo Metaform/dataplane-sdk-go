@@ -17,12 +17,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/google/uuid"
 	"github.com/metaform/dataplane-sdk-go/examples/common"
 	"github.com/metaform/dataplane-sdk-go/pkg/dsdk"
 	"github.com/metaform/dataplane-sdk-go/pkg/memory"
-	"log"
-	"net/http"
 )
 
 const (
@@ -51,10 +52,8 @@ func NewDataPlane() (*ProviderDataPlane, error) {
 		TransactionContext(memory.InMemoryTrxContext{}).
 		OnPrepare(providerDataPlane.prepareProcessor).
 		OnStart(providerDataPlane.startProcessor).
-		OnRecover(providerDataPlane.noopHandler).
 		OnSuspend(providerDataPlane.suspendProcessor).
 		OnTerminate(providerDataPlane.terminateProcessor).
-		OnRecover(providerDataPlane.noopHandler).
 		Build()
 	if err != nil {
 		return nil, err
@@ -141,10 +140,6 @@ func (d *ProviderDataPlane) suspendProcessor(ctx context.Context, flow *dsdk.Dat
 
 func (d *ProviderDataPlane) terminateProcessor(ctx context.Context, flow *dsdk.DataFlow) error {
 	d.tokenStore.Delete(flow.ID) // invalidate token
-	return nil
-}
-
-func (d *ProviderDataPlane) noopHandler(context.Context, *dsdk.DataFlow) error {
 	return nil
 }
 

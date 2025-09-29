@@ -32,7 +32,6 @@ type DataPlaneSDK struct {
 	onStart     DataFlowProcessor
 	onTerminate DataFlowHandler
 	onSuspend   DataFlowHandler
-	onRecover   DataFlowHandler
 }
 
 // Prepare is called on the consumer to prepare for receiving data.
@@ -337,11 +336,6 @@ func (b *DataPlaneSDKBuilder) OnSuspend(handler DataFlowHandler) *DataPlaneSDKBu
 	return b
 }
 
-func (b *DataPlaneSDKBuilder) OnRecover(handler DataFlowHandler) *DataPlaneSDKBuilder {
-	b.sdk.onRecover = handler
-	return b
-}
-
 func (b *DataPlaneSDKBuilder) Build() (*DataPlaneSDK, error) {
 	if b.sdk.Store == nil {
 		return nil, errors.New("store is required")
@@ -374,11 +368,6 @@ func (b *DataPlaneSDKBuilder) Build() (*DataPlaneSDK, error) {
 	}
 	if b.sdk.onSuspend == nil {
 		b.sdk.onSuspend = func(context context.Context, flow *DataFlow) error {
-			return nil
-		}
-	}
-	if b.sdk.onRecover == nil {
-		b.sdk.onRecover = func(context context.Context, flow *DataFlow) error {
 			return nil
 		}
 	}

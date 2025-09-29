@@ -16,11 +16,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
+	"net/http"
+
 	"github.com/metaform/dataplane-sdk-go/examples/common"
 	"github.com/metaform/dataplane-sdk-go/pkg/dsdk"
 	"github.com/metaform/dataplane-sdk-go/pkg/memory"
-	"log"
-	"net/http"
 )
 
 const (
@@ -53,7 +54,6 @@ func NewDataPlane() (*ConsumerDataPlane, error) {
 		OnStart(dataplane.startProcessor).
 		OnTerminate(dataplane.noopHandler).
 		OnSuspend(dataplane.noopHandler).
-		OnRecover(dataplane.noopHandler).
 		Build()
 	if err != nil {
 		return nil, err
