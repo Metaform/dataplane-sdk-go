@@ -76,45 +76,8 @@ func (b *DataAddressBuilder) Build() (*DataAddress, error) {
 }
 
 type TransferType struct {
-	DestinationType string   `json:"destinationType"`
-	FlowType        FlowType `json:"flowType"`
-}
-
-type DataFlowBaseMessage struct {
-	MessageID              string       `json:"messageID"` // NEW
-	ParticipantID          string       `json:"participantID"`
-	CounterPartyID         string       `json:"counterPartyID"`
-	DataspaceContext       string       `json:"dataspaceContext"`
-	ProcessID              string       `json:"processID"`
-	AgreementID            string       `json:"agreementID"`
-	DatasetID              string       `json:"datasetID"`
-	CallbackAddress        CallbackURL  `json:"callbackAddress"`
-	TransferType           TransferType `json:"transferType"`
-	DestinationDataAddress DataAddress  `json:"destinationDataAddress"`
-}
-
-type DataFlowStartMessage struct {
-	DataFlowBaseMessage
-	SourceDataAddress *DataAddress `json:"sourceDataAddress,omitempty"`
-}
-
-type DataFlowPrepareMessage struct {
-	DataFlowBaseMessage
-}
-
-type DataFlowTransitionMessage struct {
-	Reason string `json:"reason"`
-}
-type DataFlowResponseMessage struct {
-	DataplaneID string        `json:"dataplaneID"`
-	DataAddress *DataAddress  `json:"dataAddress,omitempty"`
-	State       DataFlowState `json:"state"`
-	Error       string        `json:"error"`
-}
-
-type DataFlowStatusResponseMessage struct {
-	State      DataFlowState `json:"state"`
-	DataFlowID string        `json:"dataFlowID"`
+	DestinationType string   `json:"destinationType" validate:"required"`
+	FlowType        FlowType `json:"flowType" validate:"required"`
 }
 
 type DataFlowState int
@@ -442,4 +405,8 @@ func (u *CallbackURL) URL() *url.URL {
 
 	urlCopy := url.URL(*u)
 	return &urlCopy
+}
+
+func (u CallbackURL) IsEmpty() bool {
+	return u.Scheme == "" && u.Host == ""
 }

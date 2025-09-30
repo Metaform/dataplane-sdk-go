@@ -2,12 +2,11 @@ package dsdk
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"net/url"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,9 +16,14 @@ func Test_dataFlowStartSerialize(t *testing.T) {
 	build, _ := NewDataAddressBuilder().Property("foo", "bar").Build()
 	original := DataFlowStartMessage{
 		DataFlowBaseMessage: DataFlowBaseMessage{
-			ParticipantID:   "participant123",
-			AgreementID:     "agreement456",
-			CallbackAddress: CallbackURL(*callbackURL),
+			MessageID:        uuid.New().String(),
+			ParticipantID:    "participant123",
+			CounterPartyID:   uuid.New().String(),
+			DataspaceContext: uuid.New().String(),
+			ProcessID:        uuid.New().String(),
+			AgreementID:      "agreement456",
+			DatasetID:        uuid.New().String(),
+			CallbackAddress:  CallbackURL(*callbackURL),
 			TransferType: TransferType{
 				DestinationType: "PULL",
 				FlowType:        FlowType("PULL"),
@@ -30,37 +34,18 @@ func Test_dataFlowStartSerialize(t *testing.T) {
 	}
 
 	jsonData, err := json.Marshal(original)
-	if err != nil {
-		t.Fatalf("Failed to marshal: %v", err)
-	}
+	assert.NoError(t, err)
 
 	var decoded DataFlowStartMessage
 	err = json.Unmarshal(jsonData, &decoded)
-	if err != nil {
-		t.Fatalf("Failed to unmarshal: %v", err)
-	}
+	assert.NoError(t, err)
 
-	var errs []error
-
-	if decoded.ParticipantID != original.ParticipantID {
-		errs = append(errs, fmt.Errorf("invalid ParticipantID"))
-	}
-
-	if decoded.AgreementID != original.AgreementID {
-		errs = append(errs, fmt.Errorf("invalid AgreementID"))
-	}
-
-	if decoded.CallbackAddress != original.CallbackAddress {
-		errs = append(errs, fmt.Errorf("invalid CallbackAddress"))
-	}
-
-	if decoded.TransferType != original.TransferType {
-		errs = append(errs, fmt.Errorf("invalid TransferType"))
-	}
-
-	if testErr := errors.Join(errs...); testErr != nil {
-		t.Error(testErr)
-	}
+	assert.Equal(t, original.ParticipantID, decoded.ParticipantID, "ParticipantID should be equal")
+	assert.Equal(t, original.AgreementID, decoded.AgreementID, "AgreementID should be equal")
+	assert.Equal(t, original.CallbackAddress, decoded.CallbackAddress, "CallbackAddress should be equal")
+	assert.Equal(t, original.TransferType, decoded.TransferType, "TransferType should be equal")
+	assert.Equal(t, original.SourceDataAddress, decoded.SourceDataAddress, "SourceDataAddress should be equal")
+	assert.Equal(t, original, original)
 }
 
 func TestDataFlowBuilder_Build(t *testing.T) {
