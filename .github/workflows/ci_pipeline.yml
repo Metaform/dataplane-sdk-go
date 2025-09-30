@@ -35,4 +35,6 @@ jobs:
       - name: Run Tests (including postgres)
         env:
           CGO_ENABLED: 1
-        run: go test ./pkg/... ./internal/... --tags=postgres
+        run: |
+          go generate ./...
+          go test ./pkg/... ./internal/... --tags=postgres
