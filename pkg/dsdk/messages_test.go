@@ -17,13 +17,13 @@ func Test_Message_MissingProperties(t *testing.T) {
 }
 
 func Test_Message_Success(t *testing.T) {
-	msg := createMessage()
+	msg := newBaseMessage()
 	err := msg.Validate()
 	assert.NoError(t, err)
 }
 
 func Test_Message_InvalidCallbackAddress(t *testing.T) {
-	payload := createMessage()
+	payload := newBaseMessage()
 	payload.CallbackAddress = CallbackURL{}
 	err := payload.Validate()
 
@@ -31,14 +31,14 @@ func Test_Message_InvalidCallbackAddress(t *testing.T) {
 }
 
 func Test_Message_InvalidTransferType(t *testing.T) {
-	msg := createMessage()
+	msg := newBaseMessage()
 	msg.TransferType = TransferType{}
 	err := msg.Validate()
 	assert.ErrorIs(t, err, ErrValidation)
 }
 
 func Test_StartMessage_Success(t *testing.T) {
-	msg := createMessage()
+	msg := newBaseMessage()
 	startMsg := DataFlowStartMessage{DataFlowBaseMessage: msg, SourceDataAddress: &DataAddress{}}
 	err := startMsg.Validate()
 	assert.NoError(t, err)
@@ -53,13 +53,13 @@ func Test_StartMessage_MissingProperties(t *testing.T) {
 }
 
 func Test_StartMessage_MissingSourceDataAddress(t *testing.T) {
-	startMsg := DataFlowStartMessage{DataFlowBaseMessage: createMessage()}
+	startMsg := DataFlowStartMessage{DataFlowBaseMessage: newBaseMessage()}
 
 	assert.ErrorIs(t, startMsg.Validate(), ErrValidation)
 }
 
 func Test_PrepareMessage_Success(t *testing.T) {
-	msg := createMessage()
+	msg := newBaseMessage()
 	startMsg := DataFlowPrepareMessage{DataFlowBaseMessage: msg}
 	err := startMsg.Validate()
 	assert.NoError(t, err)
@@ -81,7 +81,7 @@ func Test_TransitionMessage_Success(t *testing.T) {
 	assert.NoError(t, msg2.Validate())
 }
 
-func createMessage() DataFlowBaseMessage {
+func newBaseMessage() DataFlowBaseMessage {
 	return DataFlowBaseMessage{
 		MessageID:        uuid.New().String(),
 		ParticipantID:    uuid.New().String(),
