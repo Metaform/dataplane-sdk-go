@@ -13,7 +13,7 @@ type DataFlowBaseMessage struct {
 	DataspaceContext       string       `json:"dataspaceContext" validate:"required"`
 	ProcessID              string       `json:"processID" validate:"required"`
 	AgreementID            string       `json:"agreementID" validate:"required"`
-	DatasetID              string       `json:"datasetID" validate:"required"`
+	DatasetID              string       `json:"datasetID"`
 	CallbackAddress        CallbackURL  `json:"callbackAddress" validate:"required,callback-url"`
 	TransferType           TransferType `json:"transferType" validate:"required"`
 	DestinationDataAddress DataAddress  `json:"destinationDataAddress" validate:"required"`
@@ -36,7 +36,7 @@ func (d *DataFlowBaseMessage) Validate() error {
 
 type DataFlowStartMessage struct {
 	DataFlowBaseMessage
-	SourceDataAddress *DataAddress `json:"sourceDataAddress,omitempty" validate:"required"`
+	SourceDataAddress *DataAddress `json:"sourceDataAddress,omitempty"`
 }
 
 func (d *DataFlowStartMessage) Validate() error {

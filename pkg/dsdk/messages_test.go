@@ -55,7 +55,7 @@ func Test_StartMessage_MissingProperties(t *testing.T) {
 func Test_StartMessage_MissingSourceDataAddress(t *testing.T) {
 	startMsg := DataFlowStartMessage{DataFlowBaseMessage: newBaseMessage()}
 
-	assert.ErrorIs(t, startMsg.Validate(), ErrValidation)
+	assert.NoError(t, startMsg.Validate())
 }
 
 func Test_PrepareMessage_Success(t *testing.T) {

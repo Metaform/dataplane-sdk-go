@@ -15,9 +15,11 @@ package common
 import (
 	"errors"
 	"fmt"
-	"github.com/metaform/dataplane-sdk-go/pkg/dsdk"
 	"net/http"
 	"strings"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/metaform/dataplane-sdk-go/pkg/dsdk"
 )
 
 const (
@@ -36,13 +38,27 @@ type TokenResponse struct {
 
 // NewSignalingServer creates and returns a new HTTP server configured with dataplane signaling endpoints.
 func NewSignalingServer(sdkApi *dsdk.DataPlaneApi, port int) *http.Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/start", sdkApi.Start)
-	mux.HandleFunc("/prepare", sdkApi.Prepare)
-	mux.HandleFunc("/terminate/", sdkApi.Terminate)
-	mux.HandleFunc("/suspend/", sdkApi.Suspend)
+	r := chi.NewRouter()
+	r.Post("/dataflows/start", sdkApi.Start)
+	r.Post("/dataflows/{id}/start", func(writer http.ResponseWriter, request *http.Request) {
+		id := chi.URLParam(request, "id")
+		sdkApi.StartById(writer, request, id)
+	})
+	r.Post("/dataflows/prepare", sdkApi.Prepare)
+	r.Post("/dataflows/{id}/terminate", func(writer http.ResponseWriter, request *http.Request) {
+		id := chi.URLParam(request, "id")
+		sdkApi.Terminate(id, writer, request)
+	})
+	r.Post("/dataflows/{id}/suspend", func(writer http.ResponseWriter, request *http.Request) {
+		id := chi.URLParam(request, "id")
+		sdkApi.Suspend(id, writer, request)
+	})
+	r.Get("/dataflows/{id}/status", func(writer http.ResponseWriter, request *http.Request) {
+		id := chi.URLParam(request, "id")
+		sdkApi.Status(id, writer, request)
+	})
 
-	return &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: mux}
+	return &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: r}
 }
 
 // NewDataServer creates and initializes a new HTTP server with a specified port and request handler.

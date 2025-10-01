@@ -14,10 +14,11 @@ package launcher
 
 import (
 	"context"
-	"github.com/metaform/dataplane-sdk-go/examples/sync-pull-dataplane/consumer"
-	"github.com/metaform/dataplane-sdk-go/examples/sync-pull-dataplane/provider"
 	"sync"
 	"time"
+
+	"github.com/metaform/dataplane-sdk-go/examples/sync-pull-dataplane/consumer"
+	"github.com/metaform/dataplane-sdk-go/examples/sync-pull-dataplane/provider"
 )
 
 func LaunchServicesAndWait(wg *sync.WaitGroup) {

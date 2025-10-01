@@ -13,13 +13,12 @@
 package dsdk
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
-	"strings"
 
 	"github.com/google/uuid"
 )
@@ -146,7 +145,7 @@ func (d *DataPlaneApi) Terminate(id string, w http.ResponseWriter, r *http.Reque
 	if len(bodyBytes) > 0 {
 		var terminateMessage DataFlowTransitionMessage
 
-		if err := json.NewDecoder(r.Body).Decode(&terminateMessage); err != nil {
+		if err := json.NewDecoder(bytes.NewReader(bodyBytes)).Decode(&terminateMessage); err != nil {
 			d.decodingError(w, err)
 			return
 		}
@@ -179,7 +178,7 @@ func (d *DataPlaneApi) Suspend(id string, w http.ResponseWriter, r *http.Request
 	if len(bodyBytes) > 0 {
 		var suspendMessage DataFlowTransitionMessage
 
-		if err := json.NewDecoder(r.Body).Decode(&suspendMessage); err != nil {
+		if err := json.NewDecoder(bytes.NewReader(bodyBytes)).Decode(&suspendMessage); err != nil {
 			d.decodingError(w, err)
 			return
 		}
@@ -201,13 +200,9 @@ func (d *DataPlaneApi) Suspend(id string, w http.ResponseWriter, r *http.Request
 
 }
 
-func (d *DataPlaneApi) Status(w http.ResponseWriter, r *http.Request) {
+func (d *DataPlaneApi) Status(processID string, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Invalid request method", http.StatusBadRequest)
-		return
-	}
-	processID, err := ParseIDFromURL(r.URL)
-	if err != nil {
 		return
 	}
 	dataFlow, err := d.sdk.Status(r.Context(), processID)
@@ -220,7 +215,7 @@ func (d *DataPlaneApi) Status(w http.ResponseWriter, r *http.Request) {
 		State:      dataFlow.State,
 		DataFlowID: dataFlow.ID,
 	}
-	d.writeResponse(w, 200, response)
+	d.writeResponse(w, http.StatusOK, response)
 }
 
 func (d *DataPlaneApi) decodingError(w http.ResponseWriter, err error) {
@@ -261,30 +256,4 @@ func (d *DataPlaneApi) writeResponse(w http.ResponseWriter, code int, response a
 		d.writeResponse(w, http.StatusInternalServerError, &DataFlowResponseMessage{Error: message})
 		return
 	}
-}
-
-func ParseIDFromURL(u *url.URL) (string, error) {
-	if u == nil {
-		return "", errors.New("URL cannot be nil")
-	}
-
-	path := u.Path
-	if path == "" {
-		return "", errors.New("URL path is empty")
-	}
-
-	// Remove trailing slash if present
-	path = strings.TrimSuffix(path, "/")
-
-	// Split the path by '/' to get path segments
-	pathParts := strings.Split(path, "/")
-
-	// Find the last non-empty segment
-	for i := len(pathParts) - 1; i >= 0; i-- {
-		if pathParts[i] != "" {
-			return pathParts[i], nil
-		}
-	}
-
-	return "", errors.New("no valid ID found in URL path")
 }

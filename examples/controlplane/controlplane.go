@@ -27,9 +27,9 @@ import (
 )
 
 const (
-	startUrl            = "http://localhost:%d/start"
-	terminateUrl        = "http://localhost:%d/terminate/%s"
-	consumerPrepareURL  = "http://localhost:%d/prepare"
+	startUrl            = "http://localhost:%d/dataflows/start"
+	terminateUrl        = "http://localhost:%d/dataflows/%s/terminate"
+	consumerPrepareURL  = "http://localhost:%d/dataflows/prepare"
 	providerCallbackURL = "http://provider.com/dp/callback"
 	contentType         = "Content-Type"
 	jsonContentType     = "application/json"

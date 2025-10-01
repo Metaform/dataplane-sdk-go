@@ -14,10 +14,11 @@ package streaming
 
 import (
 	"context"
-	"github.com/google/uuid"
-	"github.com/metaform/dataplane-sdk-go/examples/controlplane"
 	"log"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/metaform/dataplane-sdk-go/examples/controlplane"
 )
 
 // TerminateScenario coordinates a simulated data transfer scenario and forcibly terminates it after a predefined duration.

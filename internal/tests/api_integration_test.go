@@ -48,7 +48,10 @@ func newServerWithSdk(t *testing.T, sdk *dsdk.DataPlaneSDK) http.Handler {
 		id := chi.URLParam(request, "id")
 		sdkApi.Suspend(id, writer, request)
 	})
-	r.Get("/dataflows/status", sdkApi.Status)
+	r.Get("/dataflows/{id}/status", func(writer http.ResponseWriter, request *http.Request) {
+		id := chi.URLParam(request, "id")
+		sdkApi.Status(id, writer, request)
+	})
 	return r
 }
 
@@ -264,6 +267,27 @@ func Test_Suspend_Success(t *testing.T) {
 	assert.Equal(t, dsdk.Suspended, byId.State)
 }
 
+func Test_Suspend_WithReason(t *testing.T) {
+
+	id := uuid.New().String()
+	flow, err := newFlowBuilder().ID(id).State(dsdk.Started).Build()
+	assert.NoError(t, err)
+	store := postgres.NewStore(database)
+	err = store.Create(ctx, flow)
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodPost, "/dataflows/"+flow.ID+"/suspend", strings.NewReader(`{"reason": "test reason"}`))
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	byId, err := store.FindById(ctx, id)
+	assert.NoError(t, err)
+	assert.Equal(t, dsdk.Suspended, byId.State)
+	assert.Equal(t, "test reason", byId.ErrorDetail)
+}
+
 func Test_Suspend_WhenNotExists(t *testing.T) {
 	id := uuid.New().String()
 	flow, err := newFlowBuilder().ID(id).State(dsdk.Started).Build()
@@ -307,6 +331,26 @@ func Test_Terminate_Success(t *testing.T) {
 	byId, err := store.FindById(ctx, id)
 	assert.NoError(t, err)
 	assert.Equal(t, dsdk.Terminated, byId.State)
+
+}
+
+func Test_Terminate_WithReason(t *testing.T) {
+	id := uuid.New().String()
+	flow, err := newFlowBuilder().ID(id).State(dsdk.Started).Build()
+	assert.NoError(t, err)
+	store := postgres.NewStore(database)
+	err = store.Create(ctx, flow)
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodPost, "/dataflows/"+flow.ID+"/terminate", strings.NewReader(`{"reason": "test reason"}`))
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	byId, err := store.FindById(ctx, id)
+	assert.NoError(t, err)
+	assert.Equal(t, dsdk.Terminated, byId.State)
+	assert.Equal(t, "test reason", byId.ErrorDetail)
 }
 
 func Test_Terminate_WhenNotFound(t *testing.T) {
@@ -315,6 +359,35 @@ func Test_Terminate_WhenNotFound(t *testing.T) {
 	assert.NoError(t, err)
 
 	req, err := http.NewRequest(http.MethodPost, "/dataflows/"+flow.ID+"/terminate", strings.NewReader(""))
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+}
+
+func Test_GetStatus(t *testing.T) {
+	id := uuid.New().String()
+	flow, err := newFlowBuilder().ID(id).State(dsdk.Started).Build()
+	assert.NoError(t, err)
+	store := postgres.NewStore(database)
+	err = store.Create(ctx, flow)
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodGet, "/dataflows/"+flow.ID+"/status", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	var responseMessage dsdk.DataFlowStatusResponseMessage
+	err = json.NewDecoder(rr.Body).Decode(&responseMessage)
+	assert.NoError(t, err)
+	assert.Equal(t, responseMessage.State, dsdk.Started)
+}
+
+func Test_GetStatus_NotFound(t *testing.T) {
+
+	req, err := http.NewRequest(http.MethodGet, "/dataflows/not-exist/status", nil)
+	assert.NoError(t, err)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
