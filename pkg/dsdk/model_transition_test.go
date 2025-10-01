@@ -479,7 +479,7 @@ func TestDataFlow_transitionToSuspended(t *testing.T) {
 			initialStateCount := df.StateCount
 			initialTimestamp := df.StateTimestamp
 
-			err := df.TransitionToSuspended()
+			err := df.TransitionToSuspended("test-reason")
 
 			if tc.expectErr {
 				if err == nil {
@@ -678,7 +678,7 @@ func TestDataFlow_transitionToTerminated(t *testing.T) {
 			initialStateCount := df.StateCount
 			initialTimestamp := df.StateTimestamp
 
-			err := df.TransitionToTerminated()
+			err := df.TransitionToTerminated("test-reason")
 
 			if tc.expectErr {
 				if err == nil {

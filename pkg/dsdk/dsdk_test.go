@@ -406,7 +406,7 @@ func Test_DataPlaneSDK_Terminate(t *testing.T) {
 		return df.State == Terminated
 	})).Return(nil)
 
-	err := dsdk.Terminate(ctx, "flow123")
+	err := dsdk.Terminate(ctx, "flow123", "")
 
 	assert.NoError(t, err)
 }
@@ -424,7 +424,7 @@ func Test_DataPlaneSDK_Terminate_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	store.EXPECT().FindById(ctx, "flow123").Return(nil, ErrNotFound)
-	err := dsdk.Terminate(ctx, "flow123")
+	err := dsdk.Terminate(ctx, "flow123", "")
 
 	assert.ErrorContains(t, err, "not found")
 }
@@ -449,7 +449,7 @@ func Test_DataPlaneSDK_Terminate_AlreadyTerminated(t *testing.T) {
 
 	// no transition and no save call expected
 
-	err := dsdk.Terminate(ctx, "flow123")
+	err := dsdk.Terminate(ctx, "flow123", "")
 
 	assert.NoError(t, err)
 }
@@ -471,7 +471,7 @@ func Test_DataPlaneSDK_Terminate_SdkCallbackError(t *testing.T) {
 		State: Started,
 	}, nil)
 
-	err := dsdk.Terminate(ctx, "flow123")
+	err := dsdk.Terminate(ctx, "flow123", "")
 
 	assert.ErrorContains(t, err, "some error")
 }
@@ -497,7 +497,7 @@ func Test_DataPlaneSDK_Suspend(t *testing.T) {
 		return df.State == Suspended
 	})).Return(nil)
 
-	err := dsdk.Suspend(ctx, "flow123")
+	err := dsdk.Suspend(ctx, "flow123", "")
 
 	assert.NoError(t, err)
 }
@@ -515,7 +515,7 @@ func Test_DataPlaneSDK_Suspend_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	store.EXPECT().FindById(ctx, "flow123").Return(nil, ErrNotFound)
-	err := dsdk.Suspend(ctx, "flow123")
+	err := dsdk.Suspend(ctx, "flow123", "")
 
 	assert.ErrorContains(t, err, "not found")
 }
@@ -540,7 +540,7 @@ func Test_DataPlaneSDK_Suspend_AlreadySuspended(t *testing.T) {
 
 	// no transition and no save call expected
 
-	err := dsdk.Suspend(ctx, "flow123")
+	err := dsdk.Suspend(ctx, "flow123", "")
 
 	assert.NoError(t, err)
 }
@@ -562,7 +562,7 @@ func Test_DataPlaneSDK_Suspend_SdkCallbackError(t *testing.T) {
 		State: Started,
 	}, nil)
 
-	err := dsdk.Suspend(ctx, "flow123")
+	err := dsdk.Suspend(ctx, "flow123", "")
 
 	assert.ErrorContains(t, err, "some error")
 }

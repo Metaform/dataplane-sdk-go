@@ -15,6 +15,8 @@ var (
 	ErrNotFound = errors.New("not found")
 	// ErrInvalidInput Sentinel error to indicate a wrong input, e.g. a string when a number was expected, or an empty string
 	ErrInvalidInput = errors.New("invalid input")
+	// ErrInvalidTransition Sentinel error to indicate an invalid state transition, e.g. of a data flow
+	ErrInvalidTransition = errors.New("invalid transition")
 )
 
 // NewValidationError Helper to create new ValidationError

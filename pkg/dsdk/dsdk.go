@@ -121,41 +121,7 @@ func (dsdk *DataPlaneSDK) Start(ctx context.Context, message DataFlowStartMessag
 			return fmt.Errorf("performing de-duplication for %s: %w", processID, err)
 		}
 
-		switch {
-		case flow != nil && (flow.State == Starting || flow.State == Started):
-			// duplicate message, pass to handler to generate a data address if needed
-			response, err = dsdk.onStart(ctx, flow, dsdk, &ProcessorOptions{Duplicate: true, SourceDataAddress: message.SourceDataAddress})
-			if err != nil {
-				return fmt.Errorf("processing data flow: %w", err)
-			}
-
-			err = dsdk.startState(response, flow)
-			if err != nil {
-				return fmt.Errorf("onStart returned an invalid state: %w", err)
-			}
-
-			if err := dsdk.Store.Save(ctx, flow); err != nil {
-				return fmt.Errorf("creating data flow: %w", err)
-			}
-			return nil
-		case flow != nil && flow.Consumer && flow.State == Prepared:
-			// consumer side, process
-			response, err = dsdk.onStart(ctx, flow, dsdk, &ProcessorOptions{SourceDataAddress: message.SourceDataAddress})
-			if err != nil {
-				return fmt.Errorf("processing data flow: %w", err)
-			}
-
-			err = dsdk.startState(response, flow)
-			if err != nil {
-				return fmt.Errorf("onStart returned an invalid state: %w", err)
-			}
-
-			if err := dsdk.Store.Save(ctx, flow); err != nil {
-				return fmt.Errorf("updating data flow: %w", err)
-			}
-
-			return nil
-		case flow == nil:
+		if flow == nil {
 			// provider side, process
 			flow, err = NewDataFlowBuilder().ID(processID).
 				State(Starting).
@@ -184,16 +150,38 @@ func (dsdk *DataPlaneSDK) Start(ctx context.Context, message DataFlowStartMessag
 				return fmt.Errorf("creating data flow: %w", err)
 			}
 			return nil
-		default:
-			return fmt.Errorf("data flow %s is not in STARTED state: %s", flow.ID, flow.State)
 		}
+
+		response, err = dsdk.startExistingFlow(ctx, flow, message.SourceDataAddress)
+		return err
 	})
 
 	return response, err
 
 }
 
-func (dsdk *DataPlaneSDK) Terminate(ctx context.Context, processID string) error {
+func (dsdk *DataPlaneSDK) StartById(ctx context.Context, processID string, message DataFlowStartByIdMessage) (*DataFlowResponseMessage, error) {
+	var response *DataFlowResponseMessage
+
+	err := dsdk.execute(ctx, func(ctx context.Context) error {
+		existingFlow, err := dsdk.Store.FindById(ctx, processID)
+		if err != nil && !errors.Is(err, ErrNotFound) {
+			return fmt.Errorf("performing de-duplication for %s: %w", processID, err)
+		}
+
+		if existingFlow == nil { // this should never happen -> the store would return an error
+			return ErrNotFound
+		}
+
+		response, err = dsdk.startExistingFlow(ctx, existingFlow, message.SourceDataAddress)
+		return err
+
+	})
+	return response, err
+
+}
+
+func (dsdk *DataPlaneSDK) Terminate(ctx context.Context, processID string, reason string) error {
 	if processID == "" {
 		return errors.New("processID cannot be empty")
 	}
@@ -212,7 +200,7 @@ func (dsdk *DataPlaneSDK) Terminate(ctx context.Context, processID string) error
 			return fmt.Errorf("terminating data flow %s: %w", flow.ID, err)
 		}
 
-		err = flow.TransitionToTerminated()
+		err = flow.TransitionToTerminated(reason)
 		if err != nil {
 			return err
 		}
@@ -225,7 +213,7 @@ func (dsdk *DataPlaneSDK) Terminate(ctx context.Context, processID string) error
 	})
 }
 
-func (dsdk *DataPlaneSDK) Suspend(ctx context.Context, processID string) error {
+func (dsdk *DataPlaneSDK) Suspend(ctx context.Context, processID string, reason string) error {
 	if processID == "" {
 		return errors.New("processID cannot be empty")
 	}
@@ -243,7 +231,7 @@ func (dsdk *DataPlaneSDK) Suspend(ctx context.Context, processID string) error {
 		if err := dsdk.onSuspend(ctx, flow); err != nil {
 			return fmt.Errorf("suspending data flow %s: %w", flow.ID, err)
 		}
-		err = flow.TransitionToSuspended()
+		err = flow.TransitionToSuspended(reason)
 		if err != nil {
 			return err
 		}
@@ -268,6 +256,47 @@ func (dsdk *DataPlaneSDK) Status(ctx context.Context, id string) (*DataFlow, err
 		return nil
 	})
 	return flow, err
+}
+
+func (dsdk *DataPlaneSDK) startExistingFlow(ctx context.Context, flow *DataFlow, sourceAddress *DataAddress) (*DataFlowResponseMessage, error) {
+	switch {
+	case flow != nil && (flow.State == Starting || flow.State == Started):
+		// duplicate message, pass to handler to generate a data address if needed
+		response, err := dsdk.onStart(ctx, flow, dsdk, &ProcessorOptions{Duplicate: true, SourceDataAddress: sourceAddress})
+		if err != nil {
+			return nil, fmt.Errorf("processing data flow: %w", err)
+		}
+
+		err = dsdk.startState(response, flow)
+		if err != nil {
+			return nil, fmt.Errorf("onStart returned an invalid state: %w", err)
+		}
+
+		if err := dsdk.Store.Save(ctx, flow); err != nil {
+			return nil, fmt.Errorf("creating data flow: %w", err)
+		}
+		return response, err
+	case flow != nil && flow.Consumer && flow.State == Prepared:
+		// consumer side, process
+		response, err := dsdk.onStart(ctx, flow, dsdk, &ProcessorOptions{SourceDataAddress: sourceAddress})
+		if err != nil {
+			return nil, fmt.Errorf("processing data flow: %w", err)
+		}
+
+		err = dsdk.startState(response, flow)
+		if err != nil {
+			return nil, fmt.Errorf("onStart returned an invalid state: %w", err)
+		}
+
+		if err := dsdk.Store.Save(ctx, flow); err != nil {
+			return nil, fmt.Errorf("updating data flow: %w", err)
+		}
+
+		return response, nil
+
+	default:
+		return nil, fmt.Errorf("%w: data flow %s is not in STARTED state: %s", ErrInvalidTransition, flow.ID, flow.State)
+	}
 }
 
 func (dsdk *DataPlaneSDK) startState(response *DataFlowResponseMessage, flow *DataFlow) error {

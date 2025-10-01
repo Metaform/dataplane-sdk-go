@@ -143,7 +143,7 @@ func (df *DataFlow) TransitionToPreparing() error {
 		return nil
 	}
 	if df.State != Uninitialized {
-		return fmt.Errorf("invalid transition: cannot transition from %v to PREPARING", df.State)
+		return fmt.Errorf("%w: cannot transition from %v to PREPARING", ErrInvalidTransition, df.State)
 	}
 	df.State = Preparing
 	df.StateTimestamp = time.Now().UnixMilli()
@@ -156,7 +156,7 @@ func (df *DataFlow) TransitionToPrepared() error {
 		return nil
 	}
 	if df.State != Uninitialized && df.State != Preparing {
-		return fmt.Errorf("invalid transition: cannot transition from %v to PREPARED", df.State)
+		return fmt.Errorf("%w: cannot transition from %v to PREPARED", ErrInvalidTransition, df.State)
 	}
 	df.State = Prepared
 	df.StateTimestamp = time.Now().UnixMilli()
@@ -169,7 +169,7 @@ func (df *DataFlow) TransitionToStarting() error {
 		return nil
 	}
 	if df.State != Uninitialized && df.State != Prepared {
-		return fmt.Errorf("invalid transition: cannot transition from %v to STARTING", df.State)
+		return fmt.Errorf("%w: cannot transition from %v to STARTING", ErrInvalidTransition, df.State)
 	}
 	df.State = Starting
 	df.StateTimestamp = time.Now().UnixMilli()
@@ -182,7 +182,7 @@ func (df *DataFlow) TransitionToStarted() error {
 		return nil
 	}
 	if df.State != Uninitialized && df.State != Prepared && df.State != Starting && df.State != Suspended {
-		return fmt.Errorf("invalid transition: cannot transition from %v to STARTED", df.State)
+		return fmt.Errorf("%w: cannot transition from %v to STARTED", ErrInvalidTransition, df.State)
 	}
 	df.State = Started
 	df.StateTimestamp = time.Now().UnixMilli()
@@ -190,14 +190,16 @@ func (df *DataFlow) TransitionToStarted() error {
 	return nil
 }
 
-func (df *DataFlow) TransitionToSuspended() error {
+func (df *DataFlow) TransitionToSuspended(reason string) error {
 	if df.State == Suspended {
 		return nil
 	}
 	if df.State != Started {
-		return fmt.Errorf("invalid transition: cannot transition from %v to SUSPENDED", df.State)
+		return fmt.Errorf("%w: cannot transition from %v to SUSPENDED", ErrInvalidTransition, df.State)
 	}
 	df.State = Suspended
+	//todo: what to do with the reason string?
+	df.ErrorDetail = reason
 	df.StateTimestamp = time.Now().UnixMilli()
 	df.StateCount++
 	return nil
@@ -208,7 +210,7 @@ func (df *DataFlow) TransitionToCompleted() error {
 		return nil
 	}
 	if df.State != Started {
-		return fmt.Errorf("invalid transition: cannot transition from %v to COMPLETED", df.State)
+		return fmt.Errorf("%w: cannot transition from %v to COMPLETED", ErrInvalidTransition, df.State)
 	}
 	df.State = Completed
 	df.StateTimestamp = time.Now().UnixMilli()
@@ -216,12 +218,13 @@ func (df *DataFlow) TransitionToCompleted() error {
 	return nil
 }
 
-func (df *DataFlow) TransitionToTerminated() error {
+func (df *DataFlow) TransitionToTerminated(reason string) error {
 	if df.State == Terminated {
 		return nil // todo: does returning an error make sense here?
 	}
 	// Any state can transition to terminated
 	df.State = Terminated
+	df.ErrorDetail = reason
 	df.StateTimestamp = time.Now().UnixMilli()
 	df.StateCount++
 	return nil

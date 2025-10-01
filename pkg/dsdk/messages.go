@@ -51,6 +51,18 @@ func (d *DataFlowStartMessage) Validate() error {
 	return nil
 }
 
+type DataFlowStartByIdMessage struct {
+	SourceDataAddress *DataAddress `json:"sourceDataAddress,omitempty" validate:"required"`
+}
+
+func (d *DataFlowStartByIdMessage) Validate() error {
+	err := v.Struct(d)
+	if err != nil {
+		return WrapValidationError(err)
+	}
+	return nil
+}
+
 type DataFlowPrepareMessage struct {
 	DataFlowBaseMessage
 }
