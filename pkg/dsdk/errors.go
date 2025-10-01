@@ -21,3 +21,7 @@ var (
 func NewValidationError(messages ...string) error {
 	return fmt.Errorf("%w: %s", ErrValidation, strings.Join(messages, "; "))
 }
+
+func WrapValidationError(err error) error {
+	return fmt.Errorf("%w: %w", ErrValidation, err)
+}

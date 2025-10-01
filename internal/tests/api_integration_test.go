@@ -78,7 +78,7 @@ func Test_Start_NotExists(t *testing.T) {
 
 func Test_Start_InvalidPayload(t *testing.T) {
 	sm := newStartMessage()
-	sm.CounterPartyID = ""
+	sm.CounterPartyID = "" // should raise a validation error
 	payload, err := serialize(sm)
 	assert.NoError(t, err)
 	req, err := http.NewRequest(http.MethodPost, "/start", bytes.NewBuffer(payload))

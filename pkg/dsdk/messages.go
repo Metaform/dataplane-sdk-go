@@ -1,13 +1,10 @@
 package dsdk
 
 import (
-	"encoding/json"
-	"fmt"
-
 	"github.com/go-playground/validator/v10"
 )
 
-var validate = validator.New()
+var v = validator.New()
 
 type DataFlowBaseMessage struct {
 	MessageID              string       `json:"messageID" validate:"required"`
@@ -17,30 +14,23 @@ type DataFlowBaseMessage struct {
 	ProcessID              string       `json:"processID" validate:"required"`
 	AgreementID            string       `json:"agreementID" validate:"required"`
 	DatasetID              string       `json:"datasetID" validate:"required"`
-	CallbackAddress        CallbackURL  `json:"callbackAddress" validate:"required"`
+	CallbackAddress        CallbackURL  `json:"callbackAddress" validate:"required,callback-url"`
 	TransferType           TransferType `json:"transferType" validate:"required"`
 	DestinationDataAddress DataAddress  `json:"destinationDataAddress" validate:"required"`
 }
 
-func (m *DataFlowBaseMessage) UnmarshalJSON(data []byte) error {
-	type Alias DataFlowBaseMessage
-	aux := &Alias{}
-
-	if err := json.Unmarshal(data, aux); err != nil {
-		return fmt.Errorf("error deserializing message: %w, %w", err, ErrInvalidInput)
+func (d *DataFlowBaseMessage) Validate() error {
+	err := v.RegisterValidation("callback-url", func(fl validator.FieldLevel) bool {
+		u, ok := fl.Field().Interface().(CallbackURL)
+		return ok && !u.IsEmpty()
+	})
+	if err != nil {
+		return err
 	}
 
-	// validate the unmarshalled struct
-	if err := validate.Struct(aux); err != nil {
-		// You can format errors however you want
-		return NewValidationError("validation failed: %w", err.Error())
+	if err := v.Struct(d); err != nil {
+		return WrapValidationError(err)
 	}
-
-	if aux.CallbackAddress.IsEmpty() {
-		return NewValidationError("callback address is required")
-	}
-
-	*m = DataFlowBaseMessage(*aux)
 	return nil
 }
 
@@ -49,19 +39,15 @@ type DataFlowStartMessage struct {
 	SourceDataAddress *DataAddress `json:"sourceDataAddress,omitempty" validate:"required"`
 }
 
-func (m *DataFlowStartMessage) UnmarshalJSON(data []byte) error {
-	type Alias DataFlowStartMessage
-	aux := &Alias{}
-
-	if err := json.Unmarshal(data, aux); err != nil {
-		return fmt.Errorf("error deserializing message: %w, %w", err, ErrInvalidInput)
+func (d *DataFlowStartMessage) Validate() error {
+	err := d.DataFlowBaseMessage.Validate() // call base validator
+	if err != nil {
+		return WrapValidationError(err)
 	}
-
-	if err := validate.Struct(aux); err != nil {
-		return NewValidationError("validation failed: %w", err.Error())
+	err = v.Struct(d)
+	if err != nil {
+		return WrapValidationError(err)
 	}
-
-	*m = DataFlowStartMessage(*aux)
 	return nil
 }
 
@@ -72,6 +58,11 @@ type DataFlowPrepareMessage struct {
 type DataFlowTransitionMessage struct {
 	Reason string `json:"reason"`
 }
+
+func (d *DataFlowTransitionMessage) Validate() error {
+	return nil // no special behaviour yet
+}
+
 type DataFlowResponseMessage struct {
 	DataplaneID string        `json:"dataplaneID"`
 	DataAddress *DataAddress  `json:"dataAddress,omitempty"`

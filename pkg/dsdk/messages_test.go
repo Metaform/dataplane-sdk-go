@@ -1,95 +1,100 @@
 package dsdk
 
 import (
-	"encoding/json"
-	"strings"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Message_InvalidJson(t *testing.T) {
-	// counterPartyID should be a string, not an object:
-	payload := `{
-					"messageID": "test-id",
-					"participantID": "test-id",
-					"counterPartyID": {}
-				}`
-	msg := DataFlowPrepareMessage{}
-	err := msg.UnmarshalJSON([]byte(payload))
-	assert.ErrorIs(t, err, ErrInvalidInput)
-}
+func Test_Message_MissingProperties(t *testing.T) {
 
-func Test_Message_MissingProperties_Unmarshalling(t *testing.T) {
-
-	payload := `{
-				"messageID": "test-id"
-			}`
-	msg := DataFlowPrepareMessage{}
-	err := msg.UnmarshalJSON([]byte(payload))
-	assert.ErrorIs(t, err, ErrValidation)
-}
-
-func Test_Message_MissingProperties_Decoding(t *testing.T) {
-	payload := `{
-				"messageID": "test-id"
-			}`
-	reader := strings.NewReader(payload)
-
-	message := DataFlowBaseMessage{}
-	err := json.NewDecoder(reader).Decode(&message)
+	msg := DataFlowBaseMessage{
+		MessageID: "test-id",
+	}
+	err := msg.Validate()
 	assert.ErrorIs(t, err, ErrValidation)
 }
 
 func Test_Message_Success(t *testing.T) {
-	payload := createMessage()
-	serializedPayload, err := json.Marshal(payload)
+	msg := createMessage()
+	err := msg.Validate()
 	assert.NoError(t, err)
-
-	deserialized := DataFlowPrepareMessage{}
-	err2 := json.NewDecoder(strings.NewReader(string(serializedPayload))).Decode(&deserialized)
-	assert.NoError(t, err2)
 }
 
 func Test_Message_InvalidCallbackAddress(t *testing.T) {
 	payload := createMessage()
 	payload.CallbackAddress = CallbackURL{}
-	serializedPayload, err := json.Marshal(payload)
-	assert.NoError(t, err)
+	err := payload.Validate()
 
-	deserialized := DataFlowPrepareMessage{}
-	err2 := json.NewDecoder(strings.NewReader(string(serializedPayload))).Decode(&deserialized)
-	assert.ErrorIs(t, err2, ErrValidation)
+	assert.ErrorIs(t, err, ErrValidation)
 }
 
 func Test_Message_InvalidTransferType(t *testing.T) {
-	payload := createMessage()
-	payload.TransferType = TransferType{}
-	serializedPayload, err := json.Marshal(payload)
-	assert.NoError(t, err)
-
-	deserialized := DataFlowPrepareMessage{}
-	err2 := json.NewDecoder(strings.NewReader(string(serializedPayload))).Decode(&deserialized)
-	assert.ErrorIs(t, err2, ErrValidation)
+	msg := createMessage()
+	msg.TransferType = TransferType{}
+	err := msg.Validate()
+	assert.ErrorIs(t, err, ErrValidation)
 }
 
-func createMessage() DataFlowPrepareMessage {
-	return DataFlowPrepareMessage{
-		DataFlowBaseMessage: DataFlowBaseMessage{
-			MessageID:        uuid.New().String(),
-			ParticipantID:    uuid.New().String(),
-			CounterPartyID:   uuid.New().String(),
-			DataspaceContext: uuid.New().String(),
-			ProcessID:        uuid.New().String(),
-			AgreementID:      uuid.New().String(),
-			DatasetID:        uuid.New().String(),
-			CallbackAddress:  CallbackURL{Scheme: "http", Host: "test.com", Path: "/callback"},
-			TransferType: TransferType{
-				DestinationType: "test-type",
-				FlowType:        "pull",
-			},
-			DestinationDataAddress: DataAddress{},
+func Test_StartMessage_Success(t *testing.T) {
+	msg := createMessage()
+	startMsg := DataFlowStartMessage{DataFlowBaseMessage: msg, SourceDataAddress: &DataAddress{}}
+	err := startMsg.Validate()
+	assert.NoError(t, err)
+}
+
+func Test_StartMessage_MissingProperties(t *testing.T) {
+	startMsg := DataFlowStartMessage{DataFlowBaseMessage: DataFlowBaseMessage{
+		MessageID: "test-id",
+	}}
+	err := startMsg.Validate()
+	assert.ErrorIs(t, err, ErrValidation)
+}
+
+func Test_StartMessage_MissingSourceDataAddress(t *testing.T) {
+	startMsg := DataFlowStartMessage{DataFlowBaseMessage: createMessage()}
+
+	assert.ErrorIs(t, startMsg.Validate(), ErrValidation)
+}
+
+func Test_PrepareMessage_Success(t *testing.T) {
+	msg := createMessage()
+	startMsg := DataFlowPrepareMessage{DataFlowBaseMessage: msg}
+	err := startMsg.Validate()
+	assert.NoError(t, err)
+}
+
+func Test_PrepareMessage_MissingProperties(t *testing.T) {
+	startMsg := DataFlowPrepareMessage{DataFlowBaseMessage: DataFlowBaseMessage{
+		MessageID: "test-id",
+	}}
+	err := startMsg.Validate()
+	assert.ErrorIs(t, err, ErrValidation)
+}
+
+func Test_TransitionMessage_Success(t *testing.T) {
+	msg := DataFlowTransitionMessage{}
+	assert.NoError(t, msg.Validate())
+
+	msg2 := DataFlowTransitionMessage{Reason: "test-reason"}
+	assert.NoError(t, msg2.Validate())
+}
+
+func createMessage() DataFlowBaseMessage {
+	return DataFlowBaseMessage{
+		MessageID:        uuid.New().String(),
+		ParticipantID:    uuid.New().String(),
+		CounterPartyID:   uuid.New().String(),
+		DataspaceContext: uuid.New().String(),
+		ProcessID:        uuid.New().String(),
+		AgreementID:      uuid.New().String(),
+		DatasetID:        uuid.New().String(),
+		CallbackAddress:  CallbackURL{Scheme: "http", Host: "test.com", Path: "/callback"},
+		TransferType: TransferType{
+			DestinationType: "test-type",
+			FlowType:        "pull",
 		},
+		DestinationDataAddress: DataAddress{},
 	}
 }

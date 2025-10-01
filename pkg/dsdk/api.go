@@ -42,13 +42,17 @@ func (d *DataPlaneApi) Prepare(w http.ResponseWriter, r *http.Request) {
 	var prepareMessage DataFlowPrepareMessage
 
 	if err := json.NewDecoder(r.Body).Decode(&prepareMessage); err != nil {
-		d.decodeError(w, err)
+		d.decodingError(w, err)
 		return
+	}
+
+	if err := prepareMessage.Validate(); err != nil {
+		d.validationError(err, w)
 	}
 
 	response, err := d.sdk.Prepare(r.Context(), prepareMessage)
 	if err != nil {
-		d.processError(err, w)
+		d.otherError(err, w)
 		return
 	}
 
@@ -69,13 +73,18 @@ func (d *DataPlaneApi) Start(w http.ResponseWriter, r *http.Request) {
 	var startMessage DataFlowStartMessage
 
 	if err := json.NewDecoder(r.Body).Decode(&startMessage); err != nil {
-		d.decodeError(w, err)
+		d.decodingError(w, err)
+		return
+	}
+
+	if err := startMessage.Validate(); err != nil {
+		d.validationError(err, w)
 		return
 	}
 
 	response, err := d.sdk.Start(r.Context(), startMessage)
 	if err != nil {
-		d.processError(err, w)
+		d.otherError(err, w)
 		return
 	}
 
@@ -90,13 +99,35 @@ func (d *DataPlaneApi) Start(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *DataPlaneApi) Terminate(w http.ResponseWriter, r *http.Request) {
+	var terminateMessage DataFlowTransitionMessage
+
+	if err := json.NewDecoder(r.Body).Decode(&terminateMessage); err != nil {
+		d.decodingError(w, err)
+		return
+	}
+	if err := terminateMessage.Validate(); err != nil {
+		d.validationError(err, w)
+		return
+	}
 	d.transition(w, r, func(processID string) error {
+		//todo: pass Reason to Terminate
 		return d.sdk.Terminate(r.Context(), processID)
 	})
 }
 
 func (d *DataPlaneApi) Suspend(w http.ResponseWriter, r *http.Request) {
+	var suspendMessage DataFlowTransitionMessage
+
+	if err := json.NewDecoder(r.Body).Decode(&suspendMessage); err != nil {
+		d.decodingError(w, err)
+		return
+	}
+	if err := suspendMessage.Validate(); err != nil {
+		d.validationError(err, w)
+		return
+	}
 	d.transition(w, r, func(processID string) error {
+		//todo: pass Reason to Suspend
 		return d.sdk.Suspend(r.Context(), processID)
 	})
 }
@@ -112,7 +143,7 @@ func (d *DataPlaneApi) Status(w http.ResponseWriter, r *http.Request) {
 	}
 	dataFlow, err := d.sdk.Status(r.Context(), processID)
 	if err != nil {
-		d.processError(err, w)
+		d.otherError(err, w)
 		return
 	}
 	w.Header().Set(contentType, jsonContentType)
@@ -131,20 +162,20 @@ func (d *DataPlaneApi) transition(w http.ResponseWriter, r *http.Request, transi
 
 	processID, err := ParseIDFromURL(r.URL)
 	if err != nil {
-		d.processError(err, w)
+		d.otherError(err, w)
 		return
 	}
 
 	var terminateMessage DataFlowTransitionMessage
 
 	if err := json.NewDecoder(r.Body).Decode(&terminateMessage); err != nil {
-		d.decodeError(w, err)
+		d.decodingError(w, err)
 		return
 	}
 
 	err = transition(processID)
 	if err != nil {
-		d.processError(err, w)
+		d.otherError(err, w)
 		return
 	}
 
@@ -152,19 +183,16 @@ func (d *DataPlaneApi) transition(w http.ResponseWriter, r *http.Request, transi
 	w.WriteHeader(http.StatusOK)
 }
 
-func (d *DataPlaneApi) decodeError(w http.ResponseWriter, err error) {
+func (d *DataPlaneApi) decodingError(w http.ResponseWriter, err error) {
 	id := uuid.NewString()
 	d.sdk.Monitor.Printf("Error decoding flow [%s]: %v\n", id, err)
 	d.writeResponse(w, http.StatusBadRequest, &DataFlowResponseMessage{Error: fmt.Sprintf("Failed to decode request body [%s]", id)})
 }
 
-// processError writes an error message to the HTTP response that indicates a processing error (= HTTP 500, HTTP 400 if validation error)
-func (d *DataPlaneApi) processError(err error, w http.ResponseWriter) {
+// otherError writes an error message to the HTTP response that indicates "any other" error, such as 409, 500, etc.
+func (d *DataPlaneApi) otherError(err error, w http.ResponseWriter) {
 
 	switch {
-	case errors.Is(err, ErrValidation):
-		message := fmt.Sprintf("Validation error: %s", err)
-		d.writeResponse(w, http.StatusBadRequest, &DataFlowResponseMessage{Error: message})
 	case errors.Is(err, ErrConflict):
 		message := fmt.Sprintf("%s", err)
 		d.writeResponse(w, http.StatusConflict, &DataFlowResponseMessage{Error: message})
@@ -173,7 +201,14 @@ func (d *DataPlaneApi) processError(err error, w http.ResponseWriter) {
 		d.sdk.Monitor.Println(message)
 		d.writeResponse(w, http.StatusInternalServerError, &DataFlowResponseMessage{Error: message})
 	}
-
+}
+func (d *DataPlaneApi) validationError(err error, w http.ResponseWriter) {
+	if errors.Is(err, ErrValidation) {
+		message := fmt.Sprintf("Validation error: %s", err)
+		d.writeResponse(w, http.StatusBadRequest, &DataFlowResponseMessage{Error: message})
+	} else {
+		d.otherError(err, w)
+	}
 }
 
 func (d *DataPlaneApi) writeResponse(w http.ResponseWriter, code int, response any) {
